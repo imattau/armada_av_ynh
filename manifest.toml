@@ -1,0 +1,118 @@
+packaging_format = 2
+
+id = "armada_av"
+name = "Armada AV"
+description.en = "Blind LiveKit voice/video broker for Armada's Concord communities (CORD-07)"
+description.fr = "Passerelle audio/vidéo LiveKit aveugle pour les communautés Concord d'Armada (CORD-07)"
+
+version = "0.1.0~ynh1"
+
+maintainers = ["armada_av_ynh contributors"]
+
+[upstream]
+license = "free"
+code = "https://gitworkshop.dev/chad@chadwick.site/relay.ngit.dev/armada-av"
+
+[integration]
+yunohost = ">= 11.2"
+helpers_version = "2.1"
+# Bun (the broker runtime) publishes no armhf/32-bit-ARM build, so this
+# package can't support that architecture regardless of LiveKit's own reach.
+architectures = ["amd64", "arm64"]
+multi_instance = false
+ldap = "not_relevant"
+sso = "not_relevant"
+disk = "600M"
+ram.build = "512M"
+ram.runtime = "256M"
+
+[install]
+
+    [install.domain]
+    type = "domain"
+
+    [install.init_main_permission]
+    type = "group"
+    default = "visitors"
+    help = "CORD-07's broker is deliberately blind: it must accept unauthenticated requests from any Concord client, so this cannot be restricted to a YunoHost user group without breaking the protocol."
+
+    [install.max_participants]
+    ask.en = "Max participants per call room (0 = unbounded)"
+    help.en = "A blind broker cannot tell which Community a room belongs to, so this is the only place an occupancy cap can live. Leave at 0 while this server only serves people you know; set a real number before treating it as open to strangers."
+    type = "string"
+    pattern.regexp = "^[0-9]+$"
+    pattern.error = "Enter a whole number (0 for unbounded)"
+    default = "0"
+
+    [install.token_ttl_seconds]
+    ask.en = "SFU token lifetime, in seconds"
+    help.en = "Clients treat a token as valid for a whole call and never refetch one, so this must comfortably outlive a long call. Capped at 86400 (24h) by the broker itself."
+    type = "string"
+    pattern.regexp = "^[0-9]+$"
+    pattern.error = "Enter a whole number of seconds"
+    default = "21600"
+
+    [install.rate_limit_per_minute]
+    ask.en = "Per-caller rate limit (requests/minute)"
+    help.en = "This is an intentionally open, unauthenticated service (CORD-07 §2) - this limit, not an allow-list, is what bounds abuse."
+    type = "string"
+    pattern.regexp = "^[0-9]+$"
+    pattern.error = "Enter a whole number"
+    default = "60"
+
+[resources]
+
+    [resources.sources.bun]
+        # Pinned to the Bun release line armada-av's own Dockerfile targets
+        # (oven/bun:1.3-slim). Bump this and rebump when armada-av's Dockerfile does.
+        amd64.url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-linux-x64.zip"
+        amd64.sha256 = "951ee2aee855f08595aeec6225226a298d3fea83a3dcd6465c09cbccdf7e848f"
+        arm64.url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.14/bun-linux-aarch64.zip"
+        arm64.sha256 = "a27ffb63a8310375836e0d6f668ae17fa8d8d18b88c37c821c65331973a19a3b"
+
+    [resources.sources.livekit]
+        # Pinned to the release line armada-av's deploy/single/docker-compose.yml
+        # targets (livekit/livekit-server:v1.8). AGENTS.md in the armada client
+        # repo warns that livekit-client and the server image must be bumped
+        # together - signaling protocol skew makes clients full-reconnect
+        # every ~16s otherwise.
+        amd64.url = "https://github.com/livekit/livekit/releases/download/v1.8.4/livekit_1.8.4_linux_amd64.tar.gz"
+        amd64.sha256 = "b660f4a72fe493e7c2a27861c403fba3d8c8fec4ce5e223515b26850c24d2dae"
+        arm64.url = "https://github.com/livekit/livekit/releases/download/v1.8.4/livekit_1.8.4_linux_arm64.tar.gz"
+        arm64.sha256 = "02f7a7b252d9bd1298e5bc3e301a138cc7d1bc00dc6855fd4c566ff61fb06324"
+        in_subdir = false
+
+    [resources.system_user]
+
+    [resources.install_dir]
+
+    [resources.permissions]
+        main.url = "/"
+        main.show_tile = false
+        main.protected = false
+
+    [resources.ports]
+        # The broker (loopback only, reverse-proxied by Nginx at
+        # /.well-known/concord/av).
+        main.default = 8095
+        main.exposed = false
+
+        # LiveKit's signaling websocket + server API (loopback only,
+        # reverse-proxied by Nginx at /rtc; the server API is never proxied
+        # and stays loopback-probe-only, matching upstream's Caddyfile).
+        livekit_signal.default = 7880
+        livekit_signal.exposed = false
+
+        # Media, ICE-over-TCP fallback. Must be reachable directly - it is
+        # NOT proxied by Nginx.
+        rtc_tcp.default = 7881
+        rtc_tcp.exposed = "TCP"
+
+        # Media, multiplexed over one UDP port. Must be reachable directly.
+        rtc_udp.default = 7882
+        rtc_udp.exposed = "UDP"
+
+    [resources.apt]
+        # unzip: Bun ships as a .zip release. git: fetches the pinned
+        # armada-av commit (see scripts/_common.sh - no tarball release exists).
+        packages = "unzip, git, ca-certificates"

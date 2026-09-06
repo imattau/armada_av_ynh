@@ -1,0 +1,37 @@
+[Unit]
+Description=Armada AV (__APP__) - LiveKit SFU
+After=network.target
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__INSTALL_DIR__/livekit
+ExecStart=__INSTALL_DIR__/livekit/livekit-server --config __INSTALL_DIR__/livekit/livekit.yaml
+Restart=on-failure
+RestartSec=5
+
+# Hardening. Details: https://www.freedesktop.org/software/systemd/man/systemd.exec.html
+# AF_NETLINK is needed for LiveKit's own network-interface enumeration
+# (rtc.use_external_ip's local candidate gathering).
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+RestrictNamespaces=yes
+RestrictRealtime=yes
+DevicePolicy=closed
+ProtectClock=yes
+ProtectHostname=yes
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=__APP__-livekit
+
+[Install]
+WantedBy=multi-user.target

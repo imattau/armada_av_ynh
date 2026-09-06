@@ -1,0 +1,10 @@
+#!/bin/bash
+
+source /usr/share/yunohost/helpers
+
+# Nothing app-specific to back up. The broker and LiveKit are both fully
+# reproducible from pinned, checksummed sources (see scripts/_common.sh and
+# manifest.toml's resources.sources) plus the app settings the core backs up
+# automatically (including the generated LiveKit API credentials) - so
+# scripts/restore rebuilds everything the same way scripts/install and
+# scripts/upgrade do, rather than backing up node_modules/binaries here.

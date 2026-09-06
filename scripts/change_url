@@ -1,0 +1,24 @@
+#!/bin/bash
+set -eu
+
+source /usr/share/yunohost/helpers
+source "$(dirname "$0")/_common.sh"
+
+# LiveKit's own config (livekit.yaml) doesn't reference the domain at all -
+# only ports and keys - so only the broker (PUBLIC_ORIGIN/LIVEKIT_URL) and
+# Nginx need to move. Note this does invalidate CORD-07 grants any client
+# already holds for the old origin, same as it would for any AV broker.
+
+ynh_script_progression --message="Stopping the broker..." --weight=1
+ynh_systemctl --service="$app-broker" --action=stop || true
+
+ynh_script_progression --message="Updating the broker configuration for the new domain..." --weight=1
+ynh_config_add --template="broker.env" --destination="$broker_env_path"
+
+ynh_script_progression --message="Updating Nginx configuration..." --weight=1
+ynh_config_change_url_nginx
+
+ynh_script_progression --message="Restarting the broker..." --weight=2
+ynh_systemctl --service="$app-broker" --action=start --log_path=systemd --wait_until="\[boot\] armada-av"
+
+ynh_script_progression --message="Armada AV URL update complete" --last

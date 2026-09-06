@@ -1,0 +1,33 @@
+# Single-node LiveKit for armada_av. See deploy/single/livekit.yaml in the
+# upstream armada-av repo, which this mirrors.
+port: __PORT_LIVEKIT_SIGNAL__
+
+# Signal/API only on loopback: Nginx fronts the websocket (at /rtc) and the
+# broker probes over 127.0.0.1, so nothing needs this port on a public
+# interface. Media (the ports below) binds its own sockets and stays
+# reachable from outside, which it must be.
+bind_addresses:
+  - "127.0.0.1"
+
+keys:
+  __LIVEKIT_API_KEY__: __LIVEKIT_API_SECRET__
+
+rtc:
+  tcp_port: __PORT_RTC_TCP__
+  # Media, multiplexed over ONE UDP port - capacity is bounded by egress
+  # bandwidth and CPU rather than a per-participant port ceiling.
+  udp_port: __PORT_RTC_UDP__
+  use_external_ip: true
+
+# Rooms are created on demand, named by the Channel's voice_key.pk
+# (CORD-07 §1), and are meaningless to the server by design.
+room:
+  auto_create: true
+  empty_timeout: 300
+  # 0 = unbounded. A blind broker cannot bound occupancy itself (counting
+  # members means learning who they are - see the armada-av README), so this
+  # install-time setting is where that bound lives, if wanted.
+  max_participants: __MAX_PARTICIPANTS__
+
+logging:
+  level: info

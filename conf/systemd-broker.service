@@ -1,0 +1,41 @@
+[Unit]
+Description=Armada AV (__APP__) - Concord blind AV broker
+After=network.target __APP__-livekit.service
+Wants=__APP__-livekit.service
+
+[Service]
+Type=simple
+User=__APP__
+Group=__APP__
+WorkingDirectory=__INSTALL_DIR__/broker
+EnvironmentFile=__INSTALL_DIR__/broker.env
+ExecStart=__INSTALL_DIR__/bun/bun run src/index.ts
+Restart=on-failure
+RestartSec=5
+
+# Hardening. Details: https://www.freedesktop.org/software/systemd/man/systemd.exec.html
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictNamespaces=yes
+RestrictRealtime=yes
+DevicePolicy=closed
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProtectControlGroups=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=~@clock @debug @module @mount @obsolete @reboot @setuid @swap @cpu-emulation @privileged
+CapabilityBoundingSet=
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=__APP__-broker
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,44 @@
+#!/bin/bash
+set -eu
+
+source /usr/share/yunohost/helpers
+source "$(dirname "$0")/_common.sh"
+
+ynh_script_progression --message="Fetching the armada-av broker source..." --weight=2
+armada_av_fetch_broker_source
+
+ynh_script_progression --message="Fetching the Bun runtime..." --weight=3
+ynh_setup_source --source_id=bun --dest_dir="$install_dir/bun"
+chmod +x "$bun_bin"
+
+ynh_script_progression --message="Fetching the LiveKit SFU..." --weight=3
+ynh_setup_source --source_id=livekit --dest_dir="$livekit_dir"
+chmod +x "$livekit_bin"
+
+ynh_script_progression --message="Installing broker dependencies..." --weight=5
+armada_av_install_broker_deps
+
+ynh_script_progression --message="Generating LiveKit API credentials..." --weight=1
+livekit_api_key="lk$(ynh_string_random --length=20)"
+livekit_api_secret="$(ynh_string_random --length=40)"
+ynh_app_setting_set --key=livekit_api_key --value="$livekit_api_key"
+ynh_app_setting_set --key=livekit_api_secret --value="$livekit_api_secret"
+
+ynh_script_progression --message="Configuring LiveKit..." --weight=1
+ynh_config_add --template="livekit.yaml" --destination="$livekit_conf_path"
+
+ynh_script_progression --message="Configuring the broker..." --weight=1
+ynh_config_add --template="broker.env" --destination="$broker_env_path"
+
+ynh_script_progression --message="Configuring systemd services..." --weight=2
+ynh_config_add_systemd --service="$app-livekit" --template="systemd-livekit.service"
+ynh_config_add_systemd --service="$app-broker" --template="systemd-broker.service"
+
+ynh_script_progression --message="Configuring Nginx..." --weight=1
+ynh_config_add_nginx
+
+ynh_script_progression --message="Starting armada-av..." --weight=5
+ynh_systemctl --service="$app-livekit" --action=start --log_path=systemd --wait_until="starting LiveKit server"
+ynh_systemctl --service="$app-broker" --action=start --log_path=systemd --wait_until="\[boot\] armada-av"
+
+ynh_script_progression --message="Armada AV installation complete" --last
