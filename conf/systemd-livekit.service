@@ -1,6 +1,7 @@
 [Unit]
 Description=Armada AV (__APP__) - LiveKit SFU
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 Type=simple
@@ -8,7 +9,18 @@ User=__APP__
 Group=__APP__
 WorkingDirectory=__INSTALL_DIR__/livekit
 ExecStart=__INSTALL_DIR__/livekit/livekit-server --config __INSTALL_DIR__/livekit/livekit.yaml
-Restart=on-failure
+# Restart=always, not on-failure: livekit-server's own STUN/external-IP
+# validation (rtc.use_external_ip) can log "could not validate RTC config"
+# and exit 0 - a genuine startup failure the binary itself reports as a
+# clean exit - so Restart=on-failure never fires and the unit sits dead
+# with zero retries. Confirmed live 2026-09-07: a boot-time DNS hiccup
+# ("server misbehaving" resolving stun1.l.google.com, 2s after boot,
+# before dnsmasq/network was fully up) killed it once and it never came
+# back - After=network.target alone doesn't wait for actual connectivity,
+# only for the network stack having started. network-online.target fixes
+# the ordering; Restart=always is defense-in-depth against this exit-0
+# quirk regardless of ordering.
+Restart=always
 RestartSec=5
 
 # Hardening. Details: https://www.freedesktop.org/software/systemd/man/systemd.exec.html
