@@ -9,7 +9,7 @@ This package is not yet published to a YunoHost app catalog. Install it
 directly from this repository:
 
 ```
-sudo yunohost app install https://github.com/YunoHost-Apps/armada_av_ynh
+sudo yunohost app install https://github.com/imattau/armada_av_ynh
 ```
 
 (adjust the URL if this repo ends up hosted elsewhere, e.g. a `testing`
@@ -20,7 +20,7 @@ branch or a local path for development).
 🛠️ Upstream `armada-av` repository (published over Nostr's git protocol, not
 GitHub/GitLab): <https://gitworkshop.dev/chad@chadwick.site/relay.ngit.dev/armada-av>
 
-Companion package: [armada_ynh](https://github.com/YunoHost-Apps/armada_ynh)
+Companion package: [armada_ynh](https://github.com/imattau/armada_ynh)
 packages the Armada web client itself; this package is the optional
 voice/video backend it can point at.
 
