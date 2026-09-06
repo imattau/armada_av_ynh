@@ -31,6 +31,10 @@ ynh_config_add_systemd --service="$app-broker" --template="systemd-broker.servic
 ynh_script_progression --message="Restoring Nginx configuration..." --weight=1
 ynh_config_add_nginx
 
+ynh_script_progression --message="Registering services with YunoHost..." --weight=1
+yunohost service add "$app-broker" --description="Armada AV: CORD-07 blind broker"
+yunohost service add "$app-livekit" --description="Armada AV: LiveKit SFU" --needs_exposed_ports "$port_rtc_tcp" "$port_rtc_udp"
+
 ynh_script_progression --message="Starting armada-av..." --weight=5
 ynh_systemctl --service="$app-livekit" --action=start --log_path=systemd --wait_until="starting LiveKit server"
 ynh_systemctl --service="$app-broker" --action=start --log_path=systemd --wait_until="\[boot\] armada-av"
